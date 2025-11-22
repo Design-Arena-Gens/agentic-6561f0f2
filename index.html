@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Downloader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: left;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-info p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        .file-info strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📥</div>
+        <h1>Project Downloader</h1>
+        <p class="subtitle">Apne project ko download karne ke liye URL enter karein</p>
+
+        <div class="input-group">
+            <input type="text" id="projectUrl" placeholder="Project URL daalein (GitHub, GitLab, etc.)" />
+        </div>
+
+        <button class="btn" id="downloadBtn" onclick="downloadProject()">
+            Download Project
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #666;">Download ho raha hai...</p>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div id="fileInfo" class="file-info"></div>
+    </div>
+
+    <script>
+        async function downloadProject() {
+            const url = document.getElementById('projectUrl').value.trim();
+            const statusDiv = document.getElementById('status');
+            const loadingDiv = document.getElementById('loading');
+            const fileInfoDiv = document.getElementById('fileInfo');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            // Reset status
+            statusDiv.className = 'status';
+            statusDiv.style.display = 'none';
+            fileInfoDiv.className = 'file-info';
+            fileInfoDiv.innerHTML = '';
+
+            if (!url) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = 'Kripya ek valid URL enter karein!';
+                return;
+            }
+
+            // Show loading
+            loadingDiv.classList.add('show');
+            downloadBtn.disabled = true;
+
+            try {
+                // Determine the download URL
+                let downloadUrl = url;
+
+                // GitHub repository handling
+                if (url.includes('github.com')) {
+                    // Convert GitHub URL to zip download
+                    const repoMatch = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+                    if (repoMatch) {
+                        const [, owner, repo] = repoMatch;
+                        const cleanRepo = repo.replace(/\.git$/, '');
+                        downloadUrl = `https://github.com/${owner}/${cleanRepo}/archive/refs/heads/main.zip`;
+                    }
+                }
+                // GitLab repository handling
+                else if (url.includes('gitlab.com')) {
+                    const repoMatch = url.match(/gitlab\.com\/([^\/]+)\/([^\/]+)/);
+                    if (repoMatch) {
+                        const [, owner, repo] = repoMatch;
+                        const cleanRepo = repo.replace(/\.git$/, '');
+                        downloadUrl = `https://gitlab.com/${owner}/${cleanRepo}/-/archive/main/${cleanRepo}-main.zip`;
+                    }
+                }
+
+                // Create a temporary anchor element to trigger download
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'project.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                // Show success message
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = '✓ Download shuru ho gaya hai! Apne browser ke downloads check karein.';
+
+                // Show file info
+                fileInfoDiv.className = 'file-info show';
+                fileInfoDiv.innerHTML = `
+                    <p><strong>Download URL:</strong> ${downloadUrl}</p>
+                    <p><strong>File Type:</strong> ZIP Archive</p>
+                    <p><strong>Status:</strong> Download in progress</p>
+                `;
+
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Error: ' + error.message;
+            } finally {
+                loadingDiv.classList.remove('show');
+                downloadBtn.disabled = false;
+            }
+        }
+
+        // Allow Enter key to trigger download
+        document.getElementById('projectUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                downloadProject();
+            }
+        });
+    </script>
+</body>
+</html>
